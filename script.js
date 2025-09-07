@@ -46,14 +46,34 @@ function clearResults() {
 }
 
 function clearJplDetails() {
-  const jplDiv = document.getElementById('jpl-details');
-  jplDiv.classList.remove('show');
-  jplDiv.innerHTML = '';
+  // Close modal if open
+  closeJplModal();
 }
 
-function showJplDetails() {
-  document.getElementById('jpl-details').classList.add('show');
+function showJplModal() {
+  document.getElementById('jpl-modal').classList.add('show');
+  document.body.style.overflow = 'hidden'; // Prevent background scrolling
 }
+
+function closeJplModal() {
+  document.getElementById('jpl-modal').classList.remove('show');
+  document.body.style.overflow = ''; // Restore scrolling
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+  const modal = document.getElementById('jpl-modal');
+  if (event.target === modal) {
+    closeJplModal();
+  }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    closeJplModal();
+  }
+});
 function getApiKey() {
   return MY_API_KEY && MY_API_KEY !== 'DEMO_KEY' ? MY_API_KEY : 'DEMO_KEY';
 }
@@ -216,13 +236,12 @@ function displayLookupResult(asteroid) {
         ${isHazardous ? '<div class="hazard-badge">⚠️ Potentially Hazardous</div>' : ''}
         <div class="asteroid-name">${asteroid.name}</div>
         <div class="asteroid-info"><strong>ID:</strong> ${asteroid.id}</div>
-        <div class="asteroid-info"><strong>JPL URL:</strong> <a href="${asteroid.nasa_jpl_url}" target="_blank" rel="noopener">View on NASA JPL</a></div>
+        <button class="jpl-button" onclick="loadJplDetailsModal('${asteroid.id}', '${asteroid.name.replace(/'/g, "\\'")}')">🔬 View JPL Details</button>
         <div class="asteroid-info"><strong>Absolute Magnitude:</strong> ${asteroid.absolute_magnitude_h}</div>
         <div class="asteroid-info"><strong>Diameter (km):</strong> ${formatDiameter(asteroid.estimated_diameter.kilometers)}</div>
         <div class="asteroid-info"><strong>Diameter (m):</strong> ${formatDiameter(asteroid.estimated_diameter.meters)}</div>
         <div class="asteroid-info"><strong>Diameter (mi):</strong> ${formatDiameter(asteroid.estimated_diameter.miles)}</div>
         <div class="asteroid-info"><strong>Diameter (ft):</strong> ${formatDiameter(asteroid.estimated_diameter.feet)}</div>
-        <button class="jpl-button" onclick="loadJplDetails('${asteroid.id}')">🔬 Get JPL Database Details</button>
       </div>
     </div>
   `;
@@ -297,7 +316,7 @@ function displayBrowseResults(data) {
           <div class="asteroid-info"><strong>ID:</strong> ${asteroid.id}</div>
           <div class="asteroid-info"><strong>Absolute Magnitude:</strong> ${asteroid.absolute_magnitude_h}</div>
           <div class="asteroid-info"><strong>Diameter:</strong> ${formatDiameter(asteroid.estimated_diameter.kilometers)}</div>
-          <div class="asteroid-info"><strong>JPL URL:</strong> <a href="${asteroid.nasa_jpl_url}" target="_blank" rel="noopener">View Details</a></div>
+          <button class="jpl-button" onclick="loadJplDetailsModal('${asteroid.id}', '${asteroid.name.replace(/'/g, "\\'")}')">🔬 View JPL Details</button>
         </div>
       `;
     });
@@ -419,11 +438,14 @@ function displayExoplanetResults(rows, maxParsec, minPlanets) {
   showResults();
 }
 
-async function loadJplDetails(spkId) {
-  // spkId is the NEO SPK-ID you already use in Lookup
-  const box = document.getElementById('jpl-details');
-  box.innerHTML = '<div class="info-message">Fetching JPL details…</div>';
-  showJplDetails();
+async function loadJplDetailsModal(spkId, asteroidName) {
+  // Set modal title with asteroid name
+  document.getElementById('modal-title').textContent = `JPL Details: ${asteroidName}`;
+  
+  // Show modal with loading message
+  const modalBody = document.getElementById('modal-body');
+  modalBody.innerHTML = '<div class="info-message">Fetching JPL details…</div>';
+  showJplModal();
 
   try {
     const res = await fetch(`/api/sbdb?spk=${encodeURIComponent(spkId)}`);
@@ -433,15 +455,15 @@ async function loadJplDetails(spkId) {
       throw new Error('SBDB error: ' + res.status);
     }
     const data = JSON.parse(text);
-    renderJplDetails(data);
+    renderJplDetailsModal(data);
   } catch (err) {
     console.error('SBDB fetch error:', err);
-    box.innerHTML = '<div class="error-message">Failed to fetch JPL details.</div>';
+    modalBody.innerHTML = '<div class="error-message">Failed to fetch JPL details.</div>';
   }
 }
 
-function renderJplDetails(sbdb) {
-  const box = document.getElementById('jpl-details');
+function renderJplDetailsModal(sbdb) {
+  const modalBody = document.getElementById('modal-body');
   // safe getters
   const obj = sbdb?.object || {};
   const orbit = sbdb?.orbit || {};
@@ -465,13 +487,10 @@ function renderJplDetails(sbdb) {
   const albedo = phys?.albedo ?? '—';
   const rot = phys?.rot_per ? `${phys.rot_per} h` : '—';
 
-  box.innerHTML = `
-    <div class="results-header" style="margin-top:20px;">
-      <h3>JPL Small-Body Database Details</h3>
-    </div>
+  modalBody.innerHTML = `
     <div class="asteroid-grid">
       <div class="asteroid-card">
-        <div class="asteroid-name">${fullname}</div>
+        <div class="asteroid-name">Orbital Characteristics</div>
         <div class="asteroid-info"><strong>Near-Earth Object:</strong> ${neo}</div>
         <div class="asteroid-info"><strong>Potentially Hazardous:</strong> ${pha}</div>
         <div class="asteroid-info"><strong>Orbit Class:</strong> ${orbitClass}</div>

@@ -600,9 +600,17 @@ header p {
         padding: 32px 24px;
     }
 
-    .jpl-details-section {
-        padding: 32px 24px;
-        margin-top: 20px;
+    .modal-content {
+        margin: 10px;
+        max-height: 95vh;
+    }
+
+    .modal-header {
+        padding: 20px 24px 16px;
+    }
+
+    .modal-body {
+        padding: 20px 24px 24px;
     }
 
     .loading {
@@ -632,9 +640,21 @@ header p {
         padding: 24px 16px;
     }
 
-    .jpl-details-section {
-        padding: 24px 16px;
-        margin-top: 16px;
+    .modal-content {
+        margin: 5px;
+        max-height: 98vh;
+    }
+
+    .modal-header {
+        padding: 16px 20px 12px;
+    }
+
+    .modal-header h2 {
+        font-size: 1.3rem;
+    }
+
+    .modal-body {
+        padding: 16px 20px 20px;
     }
 
     .asteroid-card {
@@ -652,42 +672,105 @@ header p {
     }
 }
 
-/* JPL Details Section */
-.jpl-details-section {
+/* JPL Modal */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1000;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.modal-overlay.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-content {
     background: var(--glass-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-radius: var(--border-radius-lg);
-    padding: 40px;
     box-shadow: var(--glass-shadow);
     border: 1px solid var(--glass-border);
-    display: none;
+    max-width: 900px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
     position: relative;
-    overflow: hidden;
-    margin-top: 24px;
+    animation: slideIn 0.4s ease-out;
 }
 
-.jpl-details-section::before {
-    content: '';
-    position: absolute;
+.modal-header {
+    padding: 24px 32px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
     top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 10;
 }
 
-.jpl-details-section.show {
-    display: block;
-    animation: fadeInScale 0.5s ease-out;
-}
-
-.jpl-details-section .results-header h3 {
+.modal-header h2 {
     color: var(--text-white);
     font-size: 1.5rem;
     font-weight: 600;
+    margin: 0;
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    margin-bottom: 8px;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--text-white);
+    font-size: 2rem;
+    font-weight: 300;
+    cursor: pointer;
+    padding: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: var(--transition);
+}
+
+.modal-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
+}
+
+.modal-body {
+    padding: 24px 32px 32px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
 }
 
 .jpl-button {
