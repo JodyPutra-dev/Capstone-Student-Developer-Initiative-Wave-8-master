@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NASA Asteroid & Exoplanet Explorer</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>🌌 NASA Asteroid & Exoplanet Explorer</h1>
+      <p>Explore Near-Earth Objects (NeoWs) and Nearby Exoplanetary Systems (NASA Exoplanet Archive)</p>
+    </header>
+
+    <nav class="nav-tabs">
+      <!-- note: showTab gracefully handles missing event param -->
+      <button class="tab-button active" onclick="showTab('feed', event)">Search by Date</button>
+      <button class="tab-button" onclick="showTab('lookup', event)">Lookup Asteroid</button>
+      <button class="tab-button" onclick="showTab('browse', event)">Browse Dataset</button>
+      <button class="tab-button" onclick="showTab('exoplanets', event)">Nearby Exoplanet Systems</button>
+    </nav>
+
+    <!-- Feed Tab: Search asteroids by date -->
+    <div id="feed" class="tab-content active">
+      <div class="search-section">
+        <h2>Search Asteroids by Date Range (NeoWs)</h2>
+        <div class="form-group">
+          <label for="start-date">Start Date:</label>
+          <input type="date" id="start-date" required />
+        </div>
+        <div class="form-group">
+          <label for="end-date">End Date:</label>
+          <input type="date" id="end-date" required />
+        </div>
+        <button onclick="searchAsteroids()" class="search-btn">Search Asteroids</button>
+      </div>
+    </div>
+
+    <!-- Lookup Tab: Search specific asteroid -->
+    <div id="lookup" class="tab-content">
+      <div class="search-section">
+        <h2>Lookup Specific Asteroid (NeoWs)</h2>
+        <div class="form-group">
+          <label for="asteroid-id">Asteroid ID (SPK-ID):</label>
+          <input type="number" id="asteroid-id" placeholder="e.g., 3542519" required />
+        </div>
+        <button onclick="lookupAsteroid()" class="search-btn">Lookup Asteroid</button>
+      </div>
+    </div>
+
+    <!-- Browse Tab: Browse all asteroids -->
+    <div id="browse" class="tab-content">
+      <div class="search-section">
+        <h2>Browse Asteroid Dataset (NeoWs)</h2>
+        <button onclick="browseAsteroids()" class="search-btn">Browse Asteroids</button>
+      </div>
+    </div>
+
+    <!-- NEW: Exoplanets Tab -->
+    <div id="exoplanets" class="tab-content">
+      <div class="search-section">
+        <h2>Find Nearby Exoplanetary Systems (NASA Exoplanet Archive)</h2>
+
+        <div class="form-group">
+          <label for="max-distance">Max Distance (parsecs):</label>
+          <!-- 1 parsec ≈ 3.26 light-years -->
+          <input id="max-distance" type="number" min="1" step="1" value="20" />
+        </div>
+
+        <div class="form-group">
+          <label for="min-planets">Minimum Planets in System:</label>
+          <input id="min-planets" type="number" min="1" step="1" value="1" />
+        </div>
+
+        <button onclick="searchExoplanets()" class="search-btn">Find Nearby Systems</button>
+
+        <p class="info-note" style="margin-top:12px;">
+          Tip: Results come from the <em>pscomppars</em> table via the Exoplanet Archive TAP service.
+          Distance is in parsecs; multiply by ~3.26 for light-years.
+          If you encounter CORS in local file mode, run a simple local server (e.g., <code>npx http-server</code>)
+          or call from your backend.
+        </p>
+      </div>
+    </div>
+
+    <!-- Loading indicator -->
+    <div id="loading" class="loading hidden">
+      <div class="loader"></div>
+      <p>Fetching data...</p>
+    </div>
+
+    <!-- Results section -->
+    <div id="results" class="results-section">
+      <!-- Results will be populated here -->
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
