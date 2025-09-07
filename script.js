@@ -110,7 +110,7 @@ async function searchAsteroids() {
   showLoading();
 
   try {
-    const url = `${BASE_URL}/feed?start_date=${startDate}&end_date=${actualEndDate}&api_key=${apiKey}`;
+    const url = `/api/neo?path=feed&start_date=${startDate}&end_date=${actualEndDate}`;
     const response = await fetch(url);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const data = await response.json();
@@ -176,7 +176,7 @@ async function lookupAsteroid() {
   showLoading();
 
   try {
-    const url = `${BASE_URL}/neo/${asteroidId}?api_key=${apiKey}`;
+    const url = `/api/neo?path=neo/${encodeURIComponent(asteroidId)}`;
     const response = await fetch(url);
     if (!response.ok) {
       if (response.status === 404) throw new Error('Asteroid not found. Please check the ID and try again.');
@@ -247,7 +247,7 @@ async function browseAsteroids() {
   const apiKey = getApiKey();
   showLoading();
   try {
-    const url = `${BASE_URL}/neo/browse?api_key=${apiKey}`;
+    const url = `/api/neo?path=neo/browse`;
     const response = await fetch(url);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const data = await response.json();
