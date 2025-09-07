@@ -42,6 +42,17 @@ function showResults() {
 function clearResults() {
   document.getElementById('results').classList.remove('show');
   document.getElementById('results').innerHTML = '';
+  clearJplDetails();
+}
+
+function clearJplDetails() {
+  const jplDiv = document.getElementById('jpl-details');
+  jplDiv.classList.remove('show');
+  jplDiv.innerHTML = '';
+}
+
+function showJplDetails() {
+  document.getElementById('jpl-details').classList.add('show');
 }
 function getApiKey() {
   return MY_API_KEY && MY_API_KEY !== 'DEMO_KEY' ? MY_API_KEY : 'DEMO_KEY';
@@ -211,6 +222,7 @@ function displayLookupResult(asteroid) {
         <div class="asteroid-info"><strong>Diameter (m):</strong> ${formatDiameter(asteroid.estimated_diameter.meters)}</div>
         <div class="asteroid-info"><strong>Diameter (mi):</strong> ${formatDiameter(asteroid.estimated_diameter.miles)}</div>
         <div class="asteroid-info"><strong>Diameter (ft):</strong> ${formatDiameter(asteroid.estimated_diameter.feet)}</div>
+        <button class="jpl-button" onclick="loadJplDetails('${asteroid.id}')">🔬 Get JPL Database Details</button>
       </div>
     </div>
   `;
@@ -406,6 +418,81 @@ function displayExoplanetResults(rows, maxParsec, minPlanets) {
   resultsDiv.innerHTML = html;
   showResults();
 }
+
+async function loadJplDetails(spkId) {
+  // spkId is the NEO SPK-ID you already use in Lookup
+  const box = document.getElementById('jpl-details');
+  box.innerHTML = '<div class="info-message">Fetching JPL details…</div>';
+  showJplDetails();
+
+  try {
+    const res = await fetch(`/api/sbdb?spk=${encodeURIComponent(spkId)}`);
+    const text = await res.text();
+    if (!res.ok) {
+      console.error('SBDB non-OK:', res.status, text);
+      throw new Error('SBDB error: ' + res.status);
+    }
+    const data = JSON.parse(text);
+    renderJplDetails(data);
+  } catch (err) {
+    console.error('SBDB fetch error:', err);
+    box.innerHTML = '<div class="error-message">Failed to fetch JPL details.</div>';
+  }
+}
+
+function renderJplDetails(sbdb) {
+  const box = document.getElementById('jpl-details');
+  // safe getters
+  const obj = sbdb?.object || {};
+  const orbit = sbdb?.orbit || {};
+  const cls = orbit?.class || {};
+  const phys = sbdb?.phys_par || {}; // physical parameters table (when phys-par=true)
+
+  // pick some useful fields
+  const fullname = obj.fullname || obj.des || '—';
+  const neo = obj.neo ? 'Yes' : 'No';
+  const pha = obj.pha ? 'Yes' : 'No';
+  const orbitClass = cls?.name ? `${cls.name} (${cls.code || ''})` : '—';
+  const moid = orbit?.moid || orbit?.moid_ld ? `${orbit.moid} au` : '—';
+  const a = orbit?.a ? `${orbit.a} au` : '—';        // semi-major axis
+  const e = orbit?.e ?? '—';                         // eccentricity
+  const i = orbit?.i ? `${orbit.i}°` : '—';         // inclination
+  const per = orbit?.per ? `${orbit.per} d` : '—';  // orbital period (days)
+  const epoch = orbit?.epoch ? `${orbit.epoch}` : '—';
+
+  // phys params (if provided)
+  const diameter = phys?.diameter ? `${phys.diameter} km` : '—';
+  const albedo = phys?.albedo ?? '—';
+  const rot = phys?.rot_per ? `${phys.rot_per} h` : '—';
+
+  box.innerHTML = `
+    <div class="results-header" style="margin-top:20px;">
+      <h3>JPL Small-Body Database Details</h3>
+    </div>
+    <div class="asteroid-grid">
+      <div class="asteroid-card">
+        <div class="asteroid-name">${fullname}</div>
+        <div class="asteroid-info"><strong>Near-Earth Object:</strong> ${neo}</div>
+        <div class="asteroid-info"><strong>Potentially Hazardous:</strong> ${pha}</div>
+        <div class="asteroid-info"><strong>Orbit Class:</strong> ${orbitClass}</div>
+        <div class="asteroid-info"><strong>MOID:</strong> ${moid}</div>
+        <div class="asteroid-info"><strong>Semi-major axis (a):</strong> ${a}</div>
+        <div class="asteroid-info"><strong>Eccentricity (e):</strong> ${e}</div>
+        <div class="asteroid-info"><strong>Inclination (i):</strong> ${i}</div>
+        <div class="asteroid-info"><strong>Orbital period:</strong> ${per}</div>
+        <div class="asteroid-info"><strong>Epoch:</strong> ${epoch}</div>
+      </div>
+
+      <div class="asteroid-card">
+        <div class="asteroid-name">Physical Parameters</div>
+        <div class="asteroid-info"><strong>Diameter:</strong> ${diameter}</div>
+        <div class="asteroid-info"><strong>Albedo:</strong> ${albedo}</div>
+        <div class="asteroid-info"><strong>Rotation Period:</strong> ${rot}</div>
+      </div>
+    </div>
+  `;
+}
+
 
 // =====================
 // On-load defaults
