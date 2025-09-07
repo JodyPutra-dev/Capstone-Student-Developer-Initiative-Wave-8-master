@@ -1,6 +1,6 @@
 // api/sbdb.js
-// Proxy to JPL Small-Body Database API (avoids CORS/DNS hiccups)
-// Usage: /api/sbdb?spk=3542519  OR  /api/sbdb?des=433
+// Proxy to JPL Small-Body Database API (prevents CORS/DNS issues)
+// Usage: /api/sbdb?spk=3542519   or   /api/sbdb?des=433
 export default async function handler(req, res) {
   try {
     const origin = req.headers.origin || '*';
@@ -18,14 +18,16 @@ export default async function handler(req, res) {
     const qp = new URLSearchParams();
     if (spk) qp.set('spk', String(spk));
     if (des) qp.set('des', String(des));
-    // optional: add 'phys-par=true' to include physical params table
-    qp.set('phys-par', 'true');
+    qp.set('phys-par', 'true'); // include physical params if available
 
-    const url = `https://ssd-api.jpl.nasa.gov/sbdb.api?${qp.toString()}`;
-    const r = await fetch(url);
+    const upstream = `https://ssd-api.jpl.nasa.gov/sbdb.api?${qp.toString()}`;
+    const r = await fetch(upstream);
     const text = await r.text();
 
-    res.setHeader('Content-Type', 'application/json');
+    // Pass through the upstream status; set content-type appropriately
+    const ct = r.headers.get('content-type') || 'application/json';
+    res.setHeader('Content-Type', ct.includes('json') ? 'application/json' : ct);
+    res.setHeader('Cache-Control', 's-maxage=300');
     return res.status(r.status).send(text);
   } catch (e) {
     console.error('SBDB proxy error:', e);
