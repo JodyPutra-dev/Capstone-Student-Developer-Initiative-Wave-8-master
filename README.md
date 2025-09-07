@@ -187,14 +187,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **NASA Exoplanet Archive** for exoplanet system data
 - **Inter Font Family** for beautiful typography
 
-## 📞 Support
-
-If you encounter any issues or have questions:
-
-1. Check the [Issues](https://github.com/yourusername/nasa-explorer/issues) page
-2. Create a new issue with detailed information
-3. Include browser version and error messages
-
 ## 🚀 Future Enhancements
 
 - [ ] 3D visualization of asteroid orbits
