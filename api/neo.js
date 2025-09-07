@@ -1,6 +1,5 @@
 // api/neo.js
 // Proxy to NASA NeoWs so your frontend doesn't hit api.nasa.gov directly.
-// Optional: set NASA_API_KEY in Vercel → Project → Settings → Environment Variables.
 const NASA_API_KEY = process.env.NASA_API_KEY || 'DEMO_KEY';
 
 export default async function handler(req, res) {
