@@ -231,7 +231,6 @@ function displayLookupResult(asteroid) {
   const resultsDiv = document.getElementById('results');
   const isHazardous = asteroid.is_potentially_hazardous_asteroid;
 
-  // Safe name for onclick
   const safeName = (asteroid.name || '').replace(/'/g, "\\'");
 
   let html = `
@@ -450,7 +449,7 @@ function displayExoplanetResults(rows, maxParsec, minPlanets) {
 }
 
 // ===================================
-// JPL SBDB modal (with SPK -> DES fallback)
+// JPL SBDB modal (SPK -> DES -> sstr) via /api/neo?target=jpl
 // ===================================
 function extractNumericDesignation(nameOrDes) {
   if (!nameOrDes) return '';
@@ -466,7 +465,7 @@ async function fetchSbdb(spk, des, name) {
   if (name) attempts.push({ type: 'sstr', value: name });
 
   for (const a of attempts) {
-    const url = `/api/sbdb?${a.type}=${encodeURIComponent(a.value)}`;
+    const url = `/api/neo?target=jpl&${a.type}=${encodeURIComponent(a.value)}`;
     const res = await fetch(url);
     const text = await res.text();
     console.log('SBDB attempt', a, 'status', res.status, 'body sample:', text.slice(0, 200));
@@ -475,7 +474,6 @@ async function fetchSbdb(spk, des, name) {
     let data;
     try { data = JSON.parse(text); } catch { continue; }
 
-    // SBDB may return { message: "... not found ..." }
     if (data && !(data.message && /not found/i.test(data.message))) {
       return data;
     }
@@ -503,7 +501,6 @@ async function loadJplDetailsModal(spkId, asteroidName, designation = '') {
     }
   }
 }
-
 
 function renderJplDetailsModal(sbdb) {
   const modalBody = document.getElementById('modal-body');
