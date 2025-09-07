@@ -46,34 +46,38 @@ function clearResults() {
 }
 
 function clearJplDetails() {
-  // Close modal if open
   closeJplModal();
 }
 
 function showJplModal() {
-  document.getElementById('jpl-modal').classList.add('show');
-  document.body.style.overflow = 'hidden'; // Prevent background scrolling
+  const modal = document.getElementById('jpl-modal');
+  if (modal) {
+    modal.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
 }
 
 function closeJplModal() {
-  document.getElementById('jpl-modal').classList.remove('show');
-  document.body.style.overflow = ''; // Restore scrolling
+  const modal = document.getElementById('jpl-modal');
+  if (modal) {
+    modal.classList.remove('show');
+    document.body.style.overflow = '';
+  }
 }
 
 // Close modal when clicking outside
 document.addEventListener('click', function(event) {
   const modal = document.getElementById('jpl-modal');
-  if (event.target === modal) {
+  if (modal && event.target === modal) {
     closeJplModal();
   }
 });
 
 // Close modal with Escape key
 document.addEventListener('keydown', function(event) {
-  if (event.key === 'Escape') {
-    closeJplModal();
-  }
+  if (event.key === 'Escape') closeJplModal();
 });
+
 function getApiKey() {
   return MY_API_KEY && MY_API_KEY !== 'DEMO_KEY' ? MY_API_KEY : 'DEMO_KEY';
 }
@@ -89,7 +93,7 @@ function showInfo(message) {
 }
 function formatDate(dateString) {
   const date = new Date(dateString);
-  if (isNaN(date.getTime())) return dateString; // fall back if not a full date
+  if (isNaN(date.getTime())) return dateString;
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 function formatDistance(distance) {
@@ -114,7 +118,6 @@ function formatDiameter(diameter) {
 async function searchAsteroids() {
   const startDate = document.getElementById('start-date').value;
   const endDate = document.getElementById('end-date').value;
-  const apiKey = getApiKey();
 
   if (!startDate) {
     showError('Please select a start date');
@@ -132,19 +135,21 @@ async function searchAsteroids() {
   const end = new Date(actualEndDate);
   const diffTime = Math.abs(end - start);
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
   if (diffDays > 7) {
     showError('Date range cannot exceed 7 days');
     return;
   }
 
   showLoading();
-
   try {
     const url = `/api/neo?path=feed&start_date=${startDate}&end_date=${actualEndDate}`;
     const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    const data = await response.json();
+    const text = await response.text();
+    if (!response.ok) {
+      console.error('Neo feed error', response.status, text);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = JSON.parse(text);
     displayFeedResults(data);
   } catch (error) {
     console.error('Error fetching asteroid data:', error);
@@ -197,23 +202,22 @@ function displayFeedResults(data) {
 
 async function lookupAsteroid() {
   const asteroidId = document.getElementById('asteroid-id').value.trim();
-  const apiKey = getApiKey();
-
   if (!asteroidId) {
     showError('Please enter an asteroid ID');
     return;
   }
 
   showLoading();
-
   try {
     const url = `/api/neo?path=neo/${encodeURIComponent(asteroidId)}`;
     const response = await fetch(url);
+    const text = await response.text();
     if (!response.ok) {
+      console.error('Neo lookup error', response.status, text);
       if (response.status === 404) throw new Error('Asteroid not found. Please check the ID and try again.');
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    const asteroid = await response.json();
+    const asteroid = JSON.parse(text);
     displayLookupResult(asteroid);
   } catch (error) {
     console.error('Error fetching asteroid:', error);
@@ -227,6 +231,9 @@ function displayLookupResult(asteroid) {
   const resultsDiv = document.getElementById('results');
   const isHazardous = asteroid.is_potentially_hazardous_asteroid;
 
+  // Safe name for onclick
+  const safeName = (asteroid.name || '').replace(/'/g, "\\'");
+
   let html = `
     <div class="results-header">
       <h3>Asteroid Details</h3>
@@ -236,7 +243,7 @@ function displayLookupResult(asteroid) {
         ${isHazardous ? '<div class="hazard-badge">⚠️ Potentially Hazardous</div>' : ''}
         <div class="asteroid-name">${asteroid.name}</div>
         <div class="asteroid-info"><strong>ID:</strong> ${asteroid.id}</div>
-        <button class="jpl-button" onclick="loadJplDetailsModal('${asteroid.id}', '${asteroid.name.replace(/'/g, "\\'")}')">🔬 View JPL Details</button>
+        <button class="jpl-button" onclick="loadJplDetailsModal('${asteroid.id}', '${safeName}', '${asteroid.designation || ''}')">🔬 View JPL Details</button>
         <div class="asteroid-info"><strong>Absolute Magnitude:</strong> ${asteroid.absolute_magnitude_h}</div>
         <div class="asteroid-info"><strong>Diameter (km):</strong> ${formatDiameter(asteroid.estimated_diameter.kilometers)}</div>
         <div class="asteroid-info"><strong>Diameter (m):</strong> ${formatDiameter(asteroid.estimated_diameter.meters)}</div>
@@ -275,13 +282,16 @@ function displayLookupResult(asteroid) {
 }
 
 async function browseAsteroids() {
-  const apiKey = getApiKey();
   showLoading();
   try {
     const url = `/api/neo?path=neo/browse`;
     const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    const data = await response.json();
+    const text = await response.text();
+    if (!response.ok) {
+      console.error('Neo browse error', response.status, text);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = JSON.parse(text);
     displayBrowseResults(data);
   } catch (error) {
     console.error('Error browsing asteroids:', error);
@@ -309,6 +319,7 @@ function displayBrowseResults(data) {
     asteroids.forEach(asteroid => {
       const isHazardous = asteroid.is_potentially_hazardous_asteroid;
       const cardClass = isHazardous ? 'asteroid-card hazardous' : 'asteroid-card';
+      const safeName = (asteroid.name || '').replace(/'/g, "\\'");
       html += `
         <div class="${cardClass}">
           ${isHazardous ? '<div class="hazard-badge">⚠️ Potentially Hazardous</div>' : ''}
@@ -316,7 +327,7 @@ function displayBrowseResults(data) {
           <div class="asteroid-info"><strong>ID:</strong> ${asteroid.id}</div>
           <div class="asteroid-info"><strong>Absolute Magnitude:</strong> ${asteroid.absolute_magnitude_h}</div>
           <div class="asteroid-info"><strong>Diameter:</strong> ${formatDiameter(asteroid.estimated_diameter.kilometers)}</div>
-          <button class="jpl-button" onclick="loadJplDetailsModal('${asteroid.id}', '${asteroid.name.replace(/'/g, "\\'")}')">🔬 View JPL Details</button>
+          <button class="jpl-button" onclick="loadJplDetailsModal('${asteroid.id}', '${safeName}', '${asteroid.designation || ''}')">🔬 View JPL Details</button>
         </div>
       `;
     });
@@ -331,8 +342,7 @@ function displayBrowseResults(data) {
 // Exoplanets (Nearby planetary systems)
 // ===================================
 function buildExoplanetQuery(maxParsec = 20, minPlanets = 1, limit = 200) {
-  // sy_dist in parsecs; sy_pnum = number of planets in the system; hostname = star; pl_name = planet
-  // Order by distance asc, then host name
+  // (Kept for reference; proxy builds its own ADQL with TOP)
   const q = `
     SELECT pl_name, hostname, sy_pnum, sy_snum, sy_dist, disc_year, disc_method
     FROM pscomppars
@@ -352,16 +362,18 @@ async function searchExoplanets() {
   const maxParsecInput = document.getElementById('max-distance');
   const minPlanetsInput = document.getElementById('min-planets');
 
-  const maxParsec = Number(maxParsecInput?.value || 20);   // default 20 pc (~65 ly)
-  const minPlanets = Number(minPlanetsInput?.value || 1);  // default >=1 planet
+  const maxParsec = Number(maxParsecInput?.value || 20);
+  const minPlanets = Number(minPlanetsInput?.value || 1);
 
   try {
-    // Hit your proxy to avoid CORS
     const url = `${EXO_PROXY_BASE}?max_pc=${encodeURIComponent(maxParsec)}&min_p=${encodeURIComponent(minPlanets)}&limit=200`;
     const res = await fetch(url);
-    if (!res.ok) throw new Error(`Proxy error: ${res.status}`);
-
-    const data = await res.json(); // array of rows
+    const text = await res.text();
+    if (!res.ok) {
+      console.error('EXO proxy non-OK:', res.status, text);
+      throw new Error(`Proxy error: ${res.status}`);
+    }
+    const data = JSON.parse(text);
     displayExoplanetResults(data, maxParsec, minPlanets);
   } catch (err) {
     console.error('Exoplanet fetch error:', err);
@@ -374,7 +386,6 @@ async function searchExoplanets() {
 function displayExoplanetResults(rows, maxParsec, minPlanets) {
   const resultsDiv = document.getElementById('results');
 
-  // Group planets by system (hostname)
   const systems = new Map();
   for (const r of rows) {
     const host = r.hostname || 'Unknown Host';
@@ -406,7 +417,7 @@ function displayExoplanetResults(rows, maxParsec, minPlanets) {
   if (systemList.length === 0) {
     html += `<div class="info-message">No systems found for the given filters.</div>`;
   } else {
-    html += '<div class="asteroid-grid">'; // reuse same grid styles
+    html += '<div class="asteroid-grid">';
     systemList.forEach(sys => {
       const distPc = typeof sys.sy_dist === 'number' ? sys.sy_dist : Number(sys.sy_dist);
       const ly = isNaN(distPc) ? '—' : (distPc * 3.26156).toFixed(1);
@@ -438,80 +449,110 @@ function displayExoplanetResults(rows, maxParsec, minPlanets) {
   showResults();
 }
 
-async function loadJplDetailsModal(spkId, asteroidName) {
-  // Set modal title with asteroid name
-  document.getElementById('modal-title').textContent = `JPL Details: ${asteroidName}`;
-  
-  // Show modal with loading message
+// ===================================
+// JPL SBDB modal (with SPK -> DES fallback)
+// ===================================
+function extractNumericDesignation(nameOrDes) {
+  if (!nameOrDes) return '';
+  const m = String(nameOrDes).match(/^\s*(\d{1,6})\b/);
+  return m ? m[1] : '';
+}
+
+async function fetchSbdb(spk, des) {
+  const attempts = [];
+  if (spk) attempts.push({ type: 'spk', value: spk });
+  if (des) attempts.push({ type: 'des', value: des });
+
+  for (const a of attempts) {
+    const url = `/api/sbdb?${a.type}=${encodeURIComponent(a.value)}`;
+    const res = await fetch(url);
+    const text = await res.text();
+    console.log('SBDB attempt', a, 'status', res.status, 'body sample:', text.slice(0, 200));
+    if (!res.ok) continue;
+    try {
+      const data = JSON.parse(text);
+      if (data && !(data.message && /not found/i.test(data.message))) {
+        return data;
+      }
+    } catch {
+      // not JSON → skip to next attempt
+    }
+  }
+  throw new Error('SBDB: all attempts failed');
+}
+
+async function loadJplDetailsModal(spkId, asteroidName, designation = '') {
+  // Title
+  const modalTitle = document.getElementById('modal-title');
+  if (modalTitle) modalTitle.textContent = `JPL Details: ${asteroidName}`;
+
+  // Body
   const modalBody = document.getElementById('modal-body');
-  modalBody.innerHTML = '<div class="info-message">Fetching JPL details…</div>';
+  if (modalBody) modalBody.innerHTML = '<div class="info-message">Fetching JPL details…</div>';
+
   showJplModal();
 
   try {
-    const res = await fetch(`/api/sbdb?spk=${encodeURIComponent(spkId)}`);
-    const text = await res.text();
-    if (!res.ok) {
-      console.error('SBDB non-OK:', res.status, text);
-      throw new Error('SBDB error: ' + res.status);
-    }
-    const data = JSON.parse(text);
+    const desCandidate = designation || extractNumericDesignation(asteroidName);
+    const data = await fetchSbdb(spkId, desCandidate);
     renderJplDetailsModal(data);
   } catch (err) {
     console.error('SBDB fetch error:', err);
-    modalBody.innerHTML = '<div class="error-message">Failed to fetch JPL details.</div>';
+    if (modalBody) {
+      modalBody.innerHTML = '<div class="error-message">Failed to fetch JPL details (SPK & designation tidak ditemukan).</div>';
+    }
   }
 }
 
 function renderJplDetailsModal(sbdb) {
   const modalBody = document.getElementById('modal-body');
-  // safe getters
+
   const obj = sbdb?.object || {};
   const orbit = sbdb?.orbit || {};
   const cls = orbit?.class || {};
-  const phys = sbdb?.phys_par || {}; // physical parameters table (when phys-par=true)
+  const phys = sbdb?.phys_par || {};
 
-  // pick some useful fields
   const fullname = obj.fullname || obj.des || '—';
   const neo = obj.neo ? 'Yes' : 'No';
   const pha = obj.pha ? 'Yes' : 'No';
-  const orbitClass = cls?.name ? `${cls.name} (${cls.code || ''})` : '—';
-  const moid = orbit?.moid || orbit?.moid_ld ? `${orbit.moid} au` : '—';
-  const a = orbit?.a ? `${orbit.a} au` : '—';        // semi-major axis
-  const e = orbit?.e ?? '—';                         // eccentricity
-  const i = orbit?.i ? `${orbit.i}°` : '—';         // inclination
-  const per = orbit?.per ? `${orbit.per} d` : '—';  // orbital period (days)
+  const orbitClass = cls?.name ? `${cls.name}${cls.code ? ' ('+cls.code+')' : ''}` : '—';
+  const moid = orbit?.moid ? `${orbit.moid} au` : (orbit?.moid_ld ? `${orbit.moid_ld} LD` : '—');
+  const a = orbit?.a ? `${orbit.a} au` : '—';
+  const e = (orbit?.e ?? '—');
+  const i = orbit?.i ? `${orbit.i}°` : '—';
+  const per = orbit?.per ? `${orbit.per} d` : '—';
   const epoch = orbit?.epoch ? `${orbit.epoch}` : '—';
 
-  // phys params (if provided)
   const diameter = phys?.diameter ? `${phys.diameter} km` : '—';
-  const albedo = phys?.albedo ?? '—';
+  const albedo = (phys?.albedo ?? '—');
   const rot = phys?.rot_per ? `${phys.rot_per} h` : '—';
 
-  modalBody.innerHTML = `
-    <div class="asteroid-grid">
-      <div class="asteroid-card">
-        <div class="asteroid-name">Orbital Characteristics</div>
-        <div class="asteroid-info"><strong>Near-Earth Object:</strong> ${neo}</div>
-        <div class="asteroid-info"><strong>Potentially Hazardous:</strong> ${pha}</div>
-        <div class="asteroid-info"><strong>Orbit Class:</strong> ${orbitClass}</div>
-        <div class="asteroid-info"><strong>MOID:</strong> ${moid}</div>
-        <div class="asteroid-info"><strong>Semi-major axis (a):</strong> ${a}</div>
-        <div class="asteroid-info"><strong>Eccentricity (e):</strong> ${e}</div>
-        <div class="asteroid-info"><strong>Inclination (i):</strong> ${i}</div>
-        <div class="asteroid-info"><strong>Orbital period:</strong> ${per}</div>
-        <div class="asteroid-info"><strong>Epoch:</strong> ${epoch}</div>
-      </div>
+  if (modalBody) {
+    modalBody.innerHTML = `
+      <div class="asteroid-grid">
+        <div class="asteroid-card">
+          <div class="asteroid-name">Orbital Characteristics</div>
+          <div class="asteroid-info"><strong>Near-Earth Object:</strong> ${neo}</div>
+          <div class="asteroid-info"><strong>Potentially Hazardous:</strong> ${pha}</div>
+          <div class="asteroid-info"><strong>Orbit Class:</strong> ${orbitClass}</div>
+          <div class="asteroid-info"><strong>MOID:</strong> ${moid}</div>
+          <div class="asteroid-info"><strong>Semi-major axis (a):</strong> ${a}</div>
+          <div class="asteroid-info"><strong>Eccentricity (e):</strong> ${e}</div>
+          <div class="asteroid-info"><strong>Inclination (i):</strong> ${i}</div>
+          <div class="asteroid-info"><strong>Orbital period:</strong> ${per}</div>
+          <div class="asteroid-info"><strong>Epoch:</strong> ${epoch}</div>
+        </div>
 
-      <div class="asteroid-card">
-        <div class="asteroid-name">Physical Parameters</div>
-        <div class="asteroid-info"><strong>Diameter:</strong> ${diameter}</div>
-        <div class="asteroid-info"><strong>Albedo:</strong> ${albedo}</div>
-        <div class="asteroid-info"><strong>Rotation Period:</strong> ${rot}</div>
+        <div class="asteroid-card">
+          <div class="asteroid-name">Physical Parameters</div>
+          <div class="asteroid-info"><strong>Diameter:</strong> ${diameter}</div>
+          <div class="asteroid-info"><strong>Albedo:</strong> ${albedo}</div>
+          <div class="asteroid-info"><strong>Rotation Period:</strong> ${rot}</div>
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  }
 }
-
 
 // =====================
 // On-load defaults
