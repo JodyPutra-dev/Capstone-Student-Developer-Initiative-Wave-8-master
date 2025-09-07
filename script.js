@@ -507,45 +507,75 @@ function renderJplDetailsModal(sbdb) {
 
   const obj = sbdb?.object || {};
   const orbit = sbdb?.orbit || {};
-  const cls = orbit?.class || {};
-  const phys = sbdb?.phys_par || {};
+  const cls = obj?.orbit_class || {};
+  const phys = sbdb?.phys_par || [];
 
+  // Extract orbital elements from the elements array
+  const elements = orbit?.elements || [];
+  const getElement = (name) => elements.find(el => el.name === name)?.value || '—';
+  
   const fullname = obj.fullname || obj.des || '—';
   const neo = obj.neo ? 'Yes' : 'No';
   const pha = obj.pha ? 'Yes' : 'No';
   const orbitClass = cls?.name ? `${cls.name}${cls.code ? ' ('+cls.code+')' : ''}` : '—';
-  const moid = orbit?.moid ? `${orbit.moid} au` : (orbit?.moid_ld ? `${orbit.moid_ld} LD` : '—');
-  const a = orbit?.a ? `${orbit.a} au` : '—';
-  const e = (orbit?.e ?? '—');
-  const i = orbit?.i ? `${orbit.i}°` : '—';
-  const per = orbit?.per ? `${orbit.per} d` : '—';
+  const moid = orbit?.moid ? `${orbit.moid} au` : '—';
+  const a = getElement('a') !== '—' ? `${getElement('a')} au` : '—';
+  const e = getElement('e');
+  const i = getElement('i') !== '—' ? `${getElement('i')}°` : '—';
+  const per = getElement('per') !== '—' ? `${getElement('per')} d` : '—';
   const epoch = orbit?.epoch ? `${orbit.epoch}` : '—';
 
-  const diameter = phys?.diameter ? `${phys.diameter} km` : '—';
-  const albedo = (phys?.albedo ?? '—');
-  const rot = phys?.rot_per ? `${phys.rot_per} h` : '—';
+  // Extract physical parameters from the phys_par array
+  const getPhysParam = (name) => phys.find(p => p.name === name)?.value || '—';
+  
+  const diameter = getPhysParam('diameter') !== '—' ? `${getPhysParam('diameter')} km` : '—';
+  const albedo = getPhysParam('albedo');
+  const rot = getPhysParam('rot_per') !== '—' ? `${getPhysParam('rot_per')} h` : '—';
 
   if (modalBody) {
+    // Get additional orbital elements
+    const q = getElement('q') !== '—' ? `${getElement('q')} au` : '—'; // perihelion
+    const Q = getElement('ad') !== '—' ? `${getElement('ad')} au` : '—'; // aphelion
+    const node = getElement('om') !== '—' ? `${getElement('om')}°` : '—'; // ascending node
+    const peri = getElement('w') !== '—' ? `${getElement('w')}°` : '—'; // argument of perihelion
+    
+    // Get additional physical parameters
+    const absoluteMag = getPhysParam('H') !== '—' ? `${getPhysParam('H')}` : '—';
+    const density = getPhysParam('density') !== '—' ? `${getPhysParam('density')} g/cm³` : '—';
+    const extent = getPhysParam('extent') !== '—' ? `${getPhysParam('extent')} km` : '—';
+    
     modalBody.innerHTML = `
       <div class="asteroid-grid">
         <div class="asteroid-card">
-          <div class="asteroid-name">Orbital Characteristics</div>
+          <div class="asteroid-name">Basic Information</div>
+          <div class="asteroid-info"><strong>Full Name:</strong> ${fullname}</div>
           <div class="asteroid-info"><strong>Near-Earth Object:</strong> ${neo}</div>
           <div class="asteroid-info"><strong>Potentially Hazardous:</strong> ${pha}</div>
           <div class="asteroid-info"><strong>Orbit Class:</strong> ${orbitClass}</div>
-          <div class="asteroid-info"><strong>MOID:</strong> ${moid}</div>
+          <div class="asteroid-info"><strong>Absolute Magnitude (H):</strong> ${absoluteMag}</div>
+        </div>
+
+        <div class="asteroid-card">
+          <div class="asteroid-name">Orbital Elements</div>
           <div class="asteroid-info"><strong>Semi-major axis (a):</strong> ${a}</div>
           <div class="asteroid-info"><strong>Eccentricity (e):</strong> ${e}</div>
           <div class="asteroid-info"><strong>Inclination (i):</strong> ${i}</div>
-          <div class="asteroid-info"><strong>Orbital period:</strong> ${per}</div>
+          <div class="asteroid-info"><strong>Perihelion (q):</strong> ${q}</div>
+          <div class="asteroid-info"><strong>Aphelion (Q):</strong> ${Q}</div>
+          <div class="asteroid-info"><strong>Ascending Node (Ω):</strong> ${node}</div>
+          <div class="asteroid-info"><strong>Argument of Perihelion (ω):</strong> ${peri}</div>
+          <div class="asteroid-info"><strong>Orbital Period:</strong> ${per}</div>
+          <div class="asteroid-info"><strong>MOID:</strong> ${moid}</div>
           <div class="asteroid-info"><strong>Epoch:</strong> ${epoch}</div>
         </div>
 
         <div class="asteroid-card">
-          <div class="asteroid-name">Physical Parameters</div>
+          <div class="asteroid-name">Physical Properties</div>
           <div class="asteroid-info"><strong>Diameter:</strong> ${diameter}</div>
-          <div class="asteroid-info"><strong>Albedo:</strong> ${albedo}</div>
+          <div class="asteroid-info"><strong>Dimensions:</strong> ${extent}</div>
+          <div class="asteroid-info"><strong>Geometric Albedo:</strong> ${albedo}</div>
           <div class="asteroid-info"><strong>Rotation Period:</strong> ${rot}</div>
+          <div class="asteroid-info"><strong>Bulk Density:</strong> ${density}</div>
         </div>
       </div>
     `;
