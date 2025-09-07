@@ -1,4 +1,6 @@
 // api/sbdb.js
+// Vercel serverless proxy to JPL Small-Body Database API
+// Supports: /api/sbdb?spk=2000433  OR  /api/sbdb?des=433  OR  /api/sbdb?sstr=433%20Eros
 export default async function handler(req, res) {
   try {
     const origin = req.headers.origin || '*';
@@ -14,10 +16,10 @@ export default async function handler(req, res) {
     }
 
     const qp = new URLSearchParams();
-    if (spk) qp.set('spk', String(spk));
-    if (des) qp.set('des', String(des));
+    if (spk)  qp.set('spk', String(spk));
+    if (des)  qp.set('des', String(des));
     if (sstr) qp.set('sstr', String(sstr));
-    qp.set('phys-par', 'true');
+    qp.set('phys-par', 'true'); // include physical parameters if available
 
     const upstream = `https://ssd-api.jpl.nasa.gov/sbdb.api?${qp.toString()}`;
     const r = await fetch(upstream);
