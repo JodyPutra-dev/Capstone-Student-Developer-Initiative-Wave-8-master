@@ -458,10 +458,12 @@ function extractNumericDesignation(nameOrDes) {
   return m ? m[1] : '';
 }
 
-async function fetchSbdb(spk, des) {
+async function fetchSbdb(spk, des, name) {
+  // Try in order: spk → des → sstr (free-text, e.g., "433 Eros")
   const attempts = [];
   if (spk) attempts.push({ type: 'spk', value: spk });
   if (des) attempts.push({ type: 'des', value: des });
+  if (name) attempts.push({ type: 'sstr', value: name });
 
   for (const a of attempts) {
     const url = `/api/sbdb?${a.type}=${encodeURIComponent(a.value)}`;
@@ -469,24 +471,22 @@ async function fetchSbdb(spk, des) {
     const text = await res.text();
     console.log('SBDB attempt', a, 'status', res.status, 'body sample:', text.slice(0, 200));
     if (!res.ok) continue;
-    try {
-      const data = JSON.parse(text);
-      if (data && !(data.message && /not found/i.test(data.message))) {
-        return data;
-      }
-    } catch {
-      // not JSON → skip to next attempt
+
+    let data;
+    try { data = JSON.parse(text); } catch { continue; }
+
+    // SBDB may return { message: "... not found ..." }
+    if (data && !(data.message && /not found/i.test(data.message))) {
+      return data;
     }
   }
   throw new Error('SBDB: all attempts failed');
 }
 
 async function loadJplDetailsModal(spkId, asteroidName, designation = '') {
-  // Title
   const modalTitle = document.getElementById('modal-title');
   if (modalTitle) modalTitle.textContent = `JPL Details: ${asteroidName}`;
 
-  // Body
   const modalBody = document.getElementById('modal-body');
   if (modalBody) modalBody.innerHTML = '<div class="info-message">Fetching JPL details…</div>';
 
@@ -494,15 +494,16 @@ async function loadJplDetailsModal(spkId, asteroidName, designation = '') {
 
   try {
     const desCandidate = designation || extractNumericDesignation(asteroidName);
-    const data = await fetchSbdb(spkId, desCandidate);
+    const data = await fetchSbdb(spkId, desCandidate, asteroidName);
     renderJplDetailsModal(data);
   } catch (err) {
     console.error('SBDB fetch error:', err);
     if (modalBody) {
-      modalBody.innerHTML = '<div class="error-message">Failed to fetch JPL details (SPK & designation tidak ditemukan).</div>';
+      modalBody.innerHTML = '<div class="error-message">Failed to fetch JPL details (SPK / designation / search tidak ditemukan).</div>';
     }
   }
 }
+
 
 function renderJplDetailsModal(sbdb) {
   const modalBody = document.getElementById('modal-body');
